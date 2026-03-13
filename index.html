@@ -2,133 +2,182 @@
 <html>
 
 <head>
-  <title>CPW Scan Ordering</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<title>CPW Scan Ordering</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 30px;
-      background: #f4f4f4;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    h1 {
-      color: #333;
-    }
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    p {
-      color: #555;
-    }
+<style>
 
-    button {
-      padding: 16px 24px;
-      font-size: 18px;
-      background: black;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      margin-top: 20px;
-      cursor: pointer;
-    }
+body{
+font-family:Arial;
+text-align:center;
+padding:30px;
+background:#f4f4f4;
+}
 
-    input {
-      padding: 12px;
-      font-size: 18px;
-      width: 240px;
-      margin-top: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
+button{
+padding:15px 20px;
+font-size:16px;
+background:black;
+color:white;
+border:none;
+border-radius:6px;
+margin-top:15px;
+}
 
-    #reader {
-      width: 300px;
-      margin: 20px auto;
-    }
+input{
+padding:10px;
+font-size:16px;
+width:220px;
+margin-top:10px;
+}
 
-    #product {
-      font-size: 18px;
-      font-weight: bold;
-      color: #111;
-      margin-top: 15px;
-      min-height: 24px;
-    }
-  </style>
+#reader{
+width:300px;
+margin:auto;
+margin-top:20px;
+}
+
+#basket{
+margin-top:30px;
+background:white;
+padding:20px;
+border-radius:10px;
+}
+
+</style>
+
 </head>
 
 <body>
 
-  <h1>CPW Scan Ordering</h1>
-  <p>Scan product barcode</p>
+<h1>CPW Scan Ordering</h1>
 
-  <div id="reader"></div>
+<div id="reader"></div>
 
-  <input type="text" id="barcode" placeholder="Barcode">
+<input type="text" id="barcode" placeholder="Barcode">
 
-  <p id="product"></p>
+<p id="product"></p>
 
-  <br>
+<input type="number" id="qty" placeholder="Quantity">
 
-  <input type="number" id="qty" placeholder="Quantity">
+<br>
 
-  <br>
+<button onclick="addToBasket()">Add To Basket</button>
 
-  <button onclick="submitOrder()">Submit Order</button>
+<div id="basket">
 
-  <script>
-    const products = {
-      "8435099915607": "SINNEK HA/8060 HS Hardener 0.5L",
-      "8435099915522": "SINNEK PL/1895 Adhesion Promoter For Plastics 1L"
-    };
+<h3>Order Basket</h3>
 
-    function onScanSuccess(decodedText) {
-      document.getElementById("barcode").value = decodedText;
+<ul id="basketList"></ul>
 
-      if (products[decodedText]) {
-        document.getElementById("product").innerHTML = products[decodedText];
-      } else {
-        document.getElementById("product").innerHTML = "Unknown product";
-      }
-    }
+<button onclick="submitOrder()">Submit Order</button>
 
-    function submitOrder() {
-      let barcode = document.getElementById("barcode").value;
-      let qty = document.getElementById("qty").value;
-      let product = products[barcode] || "Unknown product";
+</div>
 
-      alert(
-        "Order submitted\n\n" +
-        "Product: " + product + "\n" +
-        "Barcode: " + barcode + "\n" +
-        "Qty: " + qty
-      );
-    }
+<script>
 
-    const html5QrCode = new Html5Qrcode("reader");
+const products = {
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        let rearCamera = devices.find(device =>
-          device.label.toLowerCase().includes("back") ||
-          device.label.toLowerCase().includes("rear")
-        );
+"8435099915607": "SINNEK HA/8060 HS Hardener 0.5L",
+"8435099915522": "SINNEK PL/1895 Adhesion Promoter For Plastics 1L"
 
-        let cameraId = rearCamera ? rearCamera.id : devices[0].id;
+}
 
-        html5QrCode.start(
-          cameraId,
-          {
-            fps: 10,
-            qrbox: 250
-          },
-          onScanSuccess
-        );
-      }
-    }).catch(err => {
-      console.log("Camera error", err);
-    });
-  </script>
+let basket = []
+
+function onScanSuccess(decodedText){
+
+document.getElementById("barcode").value = decodedText
+
+if(products[decodedText]){
+
+document.getElementById("product").innerHTML = products[decodedText]
+
+}
+else{
+
+document.getElementById("product").innerHTML = "Unknown product"
+
+}
+
+}
+
+function addToBasket(){
+
+let barcode = document.getElementById("barcode").value
+let qty = document.getElementById("qty").value
+
+let product = products[barcode] || "Unknown product"
+
+basket.push({
+product:product,
+barcode:barcode,
+qty:qty
+})
+
+renderBasket()
+
+}
+
+function renderBasket(){
+
+let list = document.getElementById("basketList")
+
+list.innerHTML = ""
+
+basket.forEach(item => {
+
+let li = document.createElement("li")
+
+li.innerText = item.qty + " x " + item.product
+
+list.appendChild(li)
+
+})
+
+}
+
+function submitOrder(){
+
+let orderText = "Order submitted\n\n"
+
+basket.forEach(item => {
+
+orderText += item.qty + " x " + item.product + "\n"
+
+})
+
+alert(orderText)
+
+basket = []
+
+renderBasket()
+
+}
+
+const html5QrCode = new Html5Qrcode("reader")
+
+Html5Qrcode.getCameras().then(devices => {
+
+let rearCamera = devices.find(device =>
+device.label.toLowerCase().includes("back") ||
+device.label.toLowerCase().includes("rear")
+)
+
+let cameraId = rearCamera ? rearCamera.id : devices[0].id
+
+html5QrCode.start(
+cameraId,
+{ fps:10, qrbox:250 },
+onScanSuccess
+)
+
+})
+
+</script>
 
 </body>
 
