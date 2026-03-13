@@ -1,191 +1,339 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-<title>CPW Scan Ordering</title>
+  <title>CPW Scan Ordering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f4f4f4;
+      margin: 0;
+    }
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
 
-<style>
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
 
-body{
-font-family:Arial;
-text-align:center;
-padding:30px;
-background:#f4f4f4;
-}
+    p {
+      color: #555;
+    }
 
-button{
-padding:15px 20px;
-font-size:16px;
-background:black;
-color:white;
-border:none;
-border-radius:6px;
-margin-top:15px;
-}
+    #reader {
+      width: 100%;
+      max-width: 320px;
+      margin: 20px auto;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
 
-input{
-padding:10px;
-font-size:16px;
-width:220px;
-margin-top:10px;
-}
+    .scan-result {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      min-height: 24px;
+    }
 
-#reader{
-width:300px;
-margin:auto;
-margin-top:20px;
-}
+    .basket {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 20px;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
 
-#basket{
-margin-top:30px;
-background:white;
-padding:20px;
-border-radius:10px;
-}
+    .basket h2 {
+      margin-top: 0;
+      text-align: center;
+      font-size: 22px;
+    }
 
-</style>
+    .basket-item {
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
 
+    .basket-item:last-child {
+      border-bottom: none;
+    }
+
+    .product-name {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #222;
+    }
+
+    .product-meta {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .qty-controls button {
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .qty-controls input {
+      width: 70px;
+      padding: 10px;
+      font-size: 16px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .remove-btn {
+      background: #b00020 !important;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .empty-basket {
+      text-align: center;
+      color: #777;
+      padding: 10px 0;
+    }
+
+    .helper-text {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
+    }
+
+    .basket-count {
+      text-align: center;
+      font-size: 14px;
+      color: #444;
+      margin-top: 8px;
+    }
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <h1>CPW Scan Ordering</h1>
+    <p>Scan a product barcode to add 1 item automatically</p>
 
-<h1>CPW Scan Ordering</h1>
+    <div id="reader"></div>
 
-<div id="reader"></div>
+    <div class="scan-result" id="lastScanned">
+      Ready to scan
+    </div>
 
-<input type="text" id="barcode" placeholder="Barcode">
+    <div class="helper-text">
+      Scan again to add another one of the same item
+    </div>
 
-<p id="product"></p>
+    <div class="basket">
+      <h2>Order Basket</h2>
+      <div class="basket-count" id="basketCount">0 items in basket</div>
+      <div id="basketList"></div>
+      <button class="submit-btn" onclick="submitOrder()">Submit Order</button>
+    </div>
+  </div>
 
-<input type="number" id="qty" placeholder="Quantity">
+  <script>
+    const products = {
+      "8435099915607": "SINNEK HA/8060 HS Hardener 0.5L",
+      "8435099915522": "SINNEK PL/1895 Adhesion Promoter For Plastics 1L"
+    };
 
-<br>
+    let basket = [];
+    let lastScanTime = 0;
+    let lastScannedCode = "";
 
-<button onclick="addToBasket()">Add To Basket</button>
+    function updateLastScanned(message) {
+      document.getElementById("lastScanned").innerText = message;
+    }
 
-<div id="basket">
+    function updateBasketCount() {
+      let totalQty = basket.reduce((sum, item) => sum + item.qty, 0);
+      document.getElementById("basketCount").innerText = totalQty + " items in basket";
+    }
 
-<h3>Order Basket</h3>
+    function addScannedProduct(barcode) {
+      const productName = products[barcode] || "Unknown product";
 
-<ul id="basketList"></ul>
+      const existingItem = basket.find(item => item.barcode === barcode);
 
-<button onclick="submitOrder()">Submit Order</button>
+      if (existingItem) {
+        existingItem.qty += 1;
+      } else {
+        basket.push({
+          barcode: barcode,
+          product: productName,
+          qty: 1
+        });
+      }
 
-</div>
+      renderBasket();
+      updateLastScanned("Added: " + productName + " (x1)");
+    }
 
-<script>
+    function changeQty(index, newQty) {
+      const qty = parseInt(newQty, 10);
 
-const products = {
+      if (isNaN(qty) || qty < 1) {
+        basket[index].qty = 1;
+      } else {
+        basket[index].qty = qty;
+      }
 
-"8435099915607": "SINNEK HA/8060 HS Hardener 0.5L",
-"8435099915522": "SINNEK PL/1895 Adhesion Promoter For Plastics 1L"
+      renderBasket();
+    }
 
-}
+    function increaseQty(index) {
+      basket[index].qty += 1;
+      renderBasket();
+    }
 
-let basket = []
+    function decreaseQty(index) {
+      if (basket[index].qty > 1) {
+        basket[index].qty -= 1;
+      } else {
+        basket.splice(index, 1);
+      }
+      renderBasket();
+    }
 
-function onScanSuccess(decodedText){
+    function removeItem(index) {
+      basket.splice(index, 1);
+      renderBasket();
+    }
 
-document.getElementById("barcode").value = decodedText
+    function renderBasket() {
+      const basketList = document.getElementById("basketList");
+      basketList.innerHTML = "";
 
-if(products[decodedText]){
+      if (basket.length === 0) {
+        basketList.innerHTML = '<div class="empty-basket">No products added yet</div>';
+        updateBasketCount();
+        return;
+      }
 
-document.getElementById("product").innerHTML = products[decodedText]
+      basket.forEach((item, index) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "basket-item";
 
-}
-else{
+        itemDiv.innerHTML = `
+          <div class="product-name">${item.product}</div>
+          <div class="product-meta">Barcode: ${item.barcode}</div>
+          <div class="qty-controls">
+            <button onclick="decreaseQty(${index})">-</button>
+            <input
+              type="number"
+              min="1"
+              value="${item.qty}"
+              onchange="changeQty(${index}, this.value)"
+            >
+            <button onclick="increaseQty(${index})">+</button>
+            <button class="remove-btn" onclick="removeItem(${index})">Remove</button>
+          </div>
+        `;
 
-document.getElementById("product").innerHTML = "Unknown product"
+        basketList.appendChild(itemDiv);
+      });
 
-}
+      updateBasketCount();
+    }
 
-}
+    function submitOrder() {
+      if (basket.length === 0) {
+        alert("Your basket is empty.");
+        return;
+      }
 
-function addToBasket(){
+      let orderText = "Order submitted\n\n";
 
-let barcode = document.getElementById("barcode").value
-let qty = document.getElementById("qty").value
+      basket.forEach(item => {
+        orderText += item.qty + " x " + item.product + "\n";
+      });
 
-let product = products[barcode] || "Unknown product"
+      alert(orderText);
 
-basket.push({
-product:product,
-barcode:barcode,
-qty:qty
-})
+      basket = [];
+      renderBasket();
+      updateLastScanned("Order submitted. Ready to scan");
+    }
 
-renderBasket()
+    function onScanSuccess(decodedText) {
+      const now = Date.now();
 
-// reset fields
-document.getElementById("barcode").value = ""
-document.getElementById("product").innerHTML = ""
-document.getElementById("qty").value = 1
+      if (decodedText === lastScannedCode && now - lastScanTime < 1200) {
+        return;
+      }
 
-}
+      lastScannedCode = decodedText;
+      lastScanTime = now;
 
-}
+      addScannedProduct(decodedText);
+    }
 
-function renderBasket(){
+    renderBasket();
 
-let list = document.getElementById("basketList")
+    const html5QrCode = new Html5Qrcode("reader");
 
-list.innerHTML = ""
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const rearCamera = devices.find(device =>
+          device.label.toLowerCase().includes("back") ||
+          device.label.toLowerCase().includes("rear")
+        );
 
-basket.forEach(item => {
+        const cameraId = rearCamera ? rearCamera.id : devices[0].id;
 
-let li = document.createElement("li")
-
-li.innerText = item.qty + " x " + item.product
-
-list.appendChild(li)
-
-})
-
-}
-
-function submitOrder(){
-
-let orderText = "Order submitted\n\n"
-
-basket.forEach(item => {
-
-orderText += item.qty + " x " + item.product + "\n"
-
-})
-
-alert(orderText)
-
-basket = []
-
-renderBasket()
-
-}
-
-const html5QrCode = new Html5Qrcode("reader")
-
-Html5Qrcode.getCameras().then(devices => {
-
-let rearCamera = devices.find(device =>
-device.label.toLowerCase().includes("back") ||
-device.label.toLowerCase().includes("rear")
-)
-
-let cameraId = rearCamera ? rearCamera.id : devices[0].id
-
-html5QrCode.start(
-cameraId,
-{ fps:10, qrbox:250 },
-onScanSuccess
-)
-
-})
-
-</script>
-
+        html5QrCode.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          onScanSuccess
+        );
+      } else {
+        updateLastScanned("No camera found");
+      }
+    }).catch(err => {
+      console.log("Camera error", err);
+      updateLastScanned("Camera error");
+    });
+  </script>
 </body>
-
 </html>
