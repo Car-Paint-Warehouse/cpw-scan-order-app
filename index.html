@@ -2,121 +2,133 @@
 <html>
 
 <head>
+  <title>CPW Scan Ordering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-<title>CPW Scan Ordering</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+      background: #f4f4f4;
+    }
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    h1 {
+      color: #333;
+    }
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+    p {
+      color: #555;
+    }
 
-<style>
+    button {
+      padding: 16px 24px;
+      font-size: 18px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
 
-body{
-font-family:Arial;
-text-align:center;
-padding:30px;
-background:#f4f4f4;
-}
+    input {
+      padding: 12px;
+      font-size: 18px;
+      width: 240px;
+      margin-top: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
 
-h1{
-color:#333;
-}
+    #reader {
+      width: 300px;
+      margin: 20px auto;
+    }
 
-button{
-padding:20px;
-font-size:18px;
-background:black;
-color:white;
-border:none;
-border-radius:8px;
-margin-top:20px;
-}
-
-input{
-padding:12px;
-font-size:18px;
-width:220px;
-margin-top:15px;
-}
-
-#reader{
-width:300px;
-margin:auto;
-margin-top:20px;
-}
-
-</style>
-
+    #product {
+      font-size: 18px;
+      font-weight: bold;
+      color: #111;
+      margin-top: 15px;
+      min-height: 24px;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>CPW Scan Ordering</h1>
+  <h1>CPW Scan Ordering</h1>
+  <p>Scan product barcode</p>
 
-<p>Scan product barcode</p>
+  <div id="reader"></div>
 
-<div id="reader"></div>
+  <input type="text" id="barcode" placeholder="Barcode">
 
-<input type="text" id="barcode" placeholder="Barcode">
+  <p id="product"></p>
 
-<br>
+  <br>
 
-<input type="number" id="qty" placeholder="Quantity">
+  <input type="number" id="qty" placeholder="Quantity">
 
-<br>
+  <br>
 
-<button onclick="submitOrder()">Submit Order</button>
+  <button onclick="submitOrder()">Submit Order</button>
 
-<script>
+  <script>
+    const products = {
+      "8435099915607": "SINNEK HA/8060 HS Hardener 0.5L",
+      "8435099915522": "SINNEK PL/1895 Adhesion Promoter For Plastics 1L"
+    };
 
-function onScanSuccess(decodedText){
+    function onScanSuccess(decodedText) {
+      document.getElementById("barcode").value = decodedText;
 
-document.getElementById("barcode").value = decodedText
+      if (products[decodedText]) {
+        document.getElementById("product").innerHTML = products[decodedText];
+      } else {
+        document.getElementById("product").innerHTML = "Unknown product";
+      }
+    }
 
-}
+    function submitOrder() {
+      let barcode = document.getElementById("barcode").value;
+      let qty = document.getElementById("qty").value;
+      let product = products[barcode] || "Unknown product";
 
-function submitOrder(){
+      alert(
+        "Order submitted\n\n" +
+        "Product: " + product + "\n" +
+        "Barcode: " + barcode + "\n" +
+        "Qty: " + qty
+      );
+    }
 
-let barcode = document.getElementById("barcode").value
-let qty = document.getElementById("qty").value
+    const html5QrCode = new Html5Qrcode("reader");
 
-alert(
-"Order submitted\n\nBarcode: " + barcode + "\nQty: " + qty
-)
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        let rearCamera = devices.find(device =>
+          device.label.toLowerCase().includes("back") ||
+          device.label.toLowerCase().includes("rear")
+        );
 
-}
+        let cameraId = rearCamera ? rearCamera.id : devices[0].id;
 
-const html5QrCode = new Html5Qrcode("reader")
-
-Html5Qrcode.getCameras().then(devices => {
-
-if (devices && devices.length) {
-
-let rearCamera = devices.find(device =>
-device.label.toLowerCase().includes("back") ||
-device.label.toLowerCase().includes("rear")
-)
-
-let cameraId = rearCamera ? rearCamera.id : devices[0].id
-
-html5QrCode.start(
-cameraId,
-{
-fps:10,
-qrbox:250
-},
-onScanSuccess
-)
-
-}
-
-}).catch(err => {
-
-console.log("Camera error", err)
-
-})
-
-</script>
+        html5QrCode.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          onScanSuccess
+        );
+      }
+    }).catch(err => {
+      console.log("Camera error", err);
+    });
+  </script>
 
 </body>
 
