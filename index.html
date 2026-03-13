@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CPW Scan Ordering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      padding: 40px;
+      background:#f4f4f4;
+    }
+    h1 {
+      color:#333;
+    }
+    button {
+      padding:20px;
+      font-size:18px;
+      background:#000;
+      color:white;
+      border:none;
+      border-radius:8px;
+      margin-top:20px;
+    }
+    input {
+      padding:10px;
+      font-size:18px;
+      width:200px;
+      margin-top:20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>CPW Scan Ordering</h1>
+
+<p>Scan product barcode</p>
+
+<input type="text" id="barcode" placeholder="Scan or type barcode">
+
+<br>
+
+<input type="number" id="qty" placeholder="Quantity">
+
+<br>
+
+<button onclick="submitOrder()">Submit Order</button>
+
+<script>
+
+function submitOrder(){
+
+let barcode = document.getElementById("barcode").value
+let qty = document.getElementById("qty").value
+
+alert("Order submitted\n\nBarcode: " + barcode + "\nQty: " + qty)
+
+}
+
+</script>
+
+</body>
+</html>
